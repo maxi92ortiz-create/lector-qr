@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
 
@@ -13,16 +14,18 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
+
     * {
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       padding: 0;
       min-height: 100%;
       background: #111;
-      color: white;
+      color: #fff;
       font-family: Arial, sans-serif;
     }
 
@@ -51,7 +54,7 @@
     .estado {
       background: #222;
       padding: 22px;
-      border-radius: 12px;
+      border-radius: 14px;
       margin-bottom: 25px;
     }
 
@@ -62,9 +65,12 @@
       margin-bottom: 8px;
     }
 
+    .estado span {
+      font-size: 17px;
+    }
+
     #reader {
       width: 100%;
-      min-height: 260px;
       overflow: hidden;
       border-radius: 14px;
       background: #222;
@@ -82,30 +88,32 @@
       line-height: 1.5;
     }
 
-    .error {
-      color: #ff5252;
+    .ok {
+      color: #20b15a;
       font-weight: bold;
     }
 
-    .ok {
-      color: #20b15a;
+    .error {
+      color: #ff5252;
       font-weight: bold;
     }
 
     #activarCamara {
       display: block;
       width: 100%;
-      max-width: 420px;
+      max-width: 500px;
+
       margin: 30px auto;
+
       padding: 22px 15px;
 
-      border: none;
-      border-radius: 12px;
+      border: 0;
+      border-radius: 14px;
 
       background: #20b15a;
       color: white;
 
-      font-size: 21px;
+      font-size: 22px;
       font-weight: bold;
 
       cursor: pointer;
@@ -114,18 +122,24 @@
     #activarCamara:disabled {
       opacity: 0.6;
     }
+
   </style>
+
 </head>
+
 
 <body>
 
   <div class="contenedor">
 
-    <h1>CONTROL DE INGRESO</h1>
+    <h1>
+      CONTROL DE INGRESO
+    </h1>
 
     <div class="subtitulo">
       CADENA PERPETUA
     </div>
+
 
     <div class="estado">
 
@@ -150,113 +164,154 @@
 
     <div id="reader"></div>
 
+
     <div id="mensaje"></div>
 
   </div>
 
 
+
   <script>
 
-    // ========================================================
+    // =========================================================
     // CONFIGURACIÓN
-    // ========================================================
+    // =========================================================
 
     const URL_APP =
       "https://script.google.com/macros/s/AKfycbwqJQAoFyiz2GP7n05ATXvtPiCWChRzScyqCz3OlB1xmY14F5jKc8U898wcfZrZfQAMPQ/exec";
+
 
     const CLAVE =
       "P1-TEST-9264";
 
 
     let scanner = null;
+
     let procesando = false;
-    let camaraIniciada = false;
+
+    let camaraActiva = false;
 
 
-    // ========================================================
+
+    // =========================================================
     // ELEMENTOS
-    // ========================================================
+    // =========================================================
 
     const boton =
       document.getElementById("activarCamara");
 
+
     const reader =
       document.getElementById("reader");
+
 
     const mensaje =
       document.getElementById("mensaje");
 
+
     const estadoTexto =
       document.getElementById("estadoTexto");
+
 
     const estadoDetalle =
       document.getElementById("estadoDetalle");
 
 
-    // ========================================================
-    // PROTEGER TEXTO
-    // ========================================================
+
+    // =========================================================
+    // ESCAPAR TEXTO
+    // =========================================================
 
     function escapar(texto) {
 
       return String(texto || "")
+
         .replace(/&/g, "&amp;")
+
         .replace(/</g, "&lt;")
+
         .replace(/>/g, "&gt;")
+
         .replace(/"/g, "&quot;")
+
         .replace(/'/g, "&#039;");
     }
 
 
-    // ========================================================
-    // EXTRAER CÓDIGO DEL QR
-    // ========================================================
+
+    // =========================================================
+    // OBTENER CÓDIGO DEL QR
+    // =========================================================
 
     function obtenerCodigo(texto) {
 
-      texto = String(texto || "").trim();
+      texto =
+        String(texto || "").trim();
+
 
       if (!texto) {
+
         return "";
+
       }
 
 
-      // Si el QR contiene una URL
+      // -------------------------------------------------------
+      // SI EL QR CONTIENE UNA URL
+      // -------------------------------------------------------
 
       try {
 
-        const url = new URL(texto);
+        const url =
+          new URL(texto);
+
 
         const codigo =
           url.searchParams.get("codigo");
 
+
         if (codigo) {
+
           return codigo.trim();
+
         }
-
-      } catch (error) {
-
-        // No es URL.
-        // Se toma como código directo.
 
       }
 
+      catch (error) {
+
+        // Si no es una URL,
+        // se considera código directo.
+
+      }
+
+
+      // -------------------------------------------------------
+      // EJEMPLO:
+      // TEST-004
+      // -------------------------------------------------------
 
       return texto;
     }
 
 
-    // ========================================================
-    // QR DETECTADO
-    // ========================================================
+
+    // =========================================================
+    // CUANDO DETECTA UN QR
+    // =========================================================
 
     async function qrLeido(
       decodedText,
       decodedResult
     ) {
 
+
+      // Evita que lea el mismo QR varias veces
+
       if (procesando) {
+
         return;
+
       }
 
 
@@ -272,11 +327,17 @@
           "</span>";
 
         return;
+
       }
 
 
       procesando = true;
 
+
+
+      // -------------------------------------------------------
+      // MOSTRAR RESULTADO
+      // -------------------------------------------------------
 
       estadoTexto.textContent =
         "QR DETECTADO";
@@ -287,113 +348,154 @@
 
 
       mensaje.innerHTML =
+
         "<span class='ok'>" +
+
         "Código: " +
+
         escapar(codigo) +
+
         "</span>";
 
 
-      // ======================================================
-      // DETENER CÁMARA ANTES DE SALIR
-      // ======================================================
+
+      // -------------------------------------------------------
+      // DETENER CÁMARA
+      // -------------------------------------------------------
 
       try {
 
-        if (scanner) {
+        if (
+          scanner &&
+          camaraActiva
+        ) {
 
           await scanner.stop();
 
+          camaraActiva = false;
+
         }
 
-      } catch (error) {
+      }
 
-        // Si no puede detenerla, continúa igual.
+      catch (error) {
+
+        console.log(
+          "No fue necesario detener cámara",
+          error
+        );
 
       }
 
 
-      // ======================================================
-      // ARMAR URL HACIA APPS SCRIPT
-      // ======================================================
+
+      // -------------------------------------------------------
+      // CREAR URL DE VALIDACIÓN
+      // -------------------------------------------------------
 
       const destino =
+
         URL_APP +
+
         "?codigo=" +
+
         encodeURIComponent(codigo) +
+
         "&clave=" +
+
         encodeURIComponent(CLAVE);
 
 
-      // ======================================================
-      // ABRIR CONTROL
-      // ======================================================
 
-      window.location.href = destino;
+      // -------------------------------------------------------
+      // IR AL CONTROL DE APPS SCRIPT
+      // -------------------------------------------------------
+
+      window.location.href =
+        destino;
     }
 
 
-    // ========================================================
-    // ERROR NORMAL DE LECTURA
-    // ========================================================
+
+    // =========================================================
+    // ERROR NORMAL DURANTE ESCANEO
+    // =========================================================
 
     function errorLectura(errorMessage) {
 
-      // Se ignora.
-      // El lector genera errores constantemente
-      // mientras busca un QR.
+      // No mostrar nada.
+      //
+      // La librería genera errores continuamente
+      // mientras todavía no encuentra un QR.
 
     }
 
 
-    // ========================================================
+
+    // =========================================================
     // ACTIVAR CÁMARA
-    // ========================================================
+    // =========================================================
 
     async function activarCamara() {
 
-      if (camaraIniciada) {
+
+      if (camaraActiva) {
+
         return;
+
       }
 
 
+      procesando = false;
+
+
       boton.disabled = true;
+
 
       boton.textContent =
         "ACTIVANDO CÁMARA...";
 
 
       estadoTexto.textContent =
-        "INICIANDO CÁMARA";
+        "INICIANDO CÁMARA...";
 
 
       estadoDetalle.textContent =
-        "Espere un momento...";
+        "Espere un momento.";
 
 
       mensaje.innerHTML = "";
 
 
-      // ======================================================
-      // COMPROBAR LIBRERÍA
-      // ======================================================
 
-      if (typeof Html5Qrcode === "undefined") {
+      // -------------------------------------------------------
+      // COMPROBAR LIBRERÍA
+      // -------------------------------------------------------
+
+      if (
+        typeof Html5Qrcode === "undefined"
+      ) {
+
 
         estadoTexto.textContent =
-          "ERROR";
+          "ERROR DEL LECTOR";
 
 
         estadoDetalle.textContent =
-          "No se pudo cargar el lector QR.";
+          "No se cargó el lector QR.";
 
 
         mensaje.innerHTML =
+
           "<span class='error'>" +
+
           "Recargue la página e intente nuevamente." +
+
           "</span>";
 
 
         boton.disabled = false;
+
 
         boton.textContent =
           "REINTENTAR";
@@ -403,29 +505,42 @@
       }
 
 
-      // ======================================================
-      // MOSTRAR LECTOR
-      // ======================================================
+
+      // -------------------------------------------------------
+      // MOSTRAR CONTENEDOR
+      // -------------------------------------------------------
 
       reader.style.display =
         "block";
 
 
+
       try {
 
+
+        // -----------------------------------------------------
+        // CREAR LECTOR
+        // -----------------------------------------------------
+
         scanner =
-          new Html5Qrcode("reader");
+          new Html5Qrcode(
+            "reader"
+          );
 
 
-        // ====================================================
-        // CONFIGURACIÓN DE CÁMARA
-        // ====================================================
+
+        // -----------------------------------------------------
+        // CONFIGURACIÓN
+        // -----------------------------------------------------
 
         const configuracion = {
 
           fps: 10,
 
-          qrbox: function(viewfinderWidth, viewfinderHeight) {
+          qrbox: function(
+            viewfinderWidth,
+            viewfinderHeight
+          ) {
 
             const minimo =
               Math.min(
@@ -434,32 +549,39 @@
               );
 
 
-            const tamaño =
+            const tamano =
               Math.floor(
                 minimo * 0.70
               );
 
 
             return {
-              width: tamaño,
-              height: tamaño
-            };
-          },
 
-          aspectRatio: 1.0
+              width: tamano,
+
+              height: tamano
+
+            };
+
+          }
+
         };
 
 
-        // ====================================================
-        // PEDIR CÁMARA TRASERA
-        // ====================================================
+
+        // =====================================================
+        // IMPORTANTE
+        //
+        // ESTA ES LA CORRECCIÓN DEL ERROR:
+        //
+        // facingMode ES STRING
+        // NO USAMOS "ideal"
+        // =====================================================
 
         await scanner.start(
 
           {
-            facingMode: {
-              ideal: "environment"
-            }
+            facingMode: "environment"
           },
 
           configuracion,
@@ -471,11 +593,12 @@
         );
 
 
-        // ====================================================
-        // CÁMARA FUNCIONANDO
-        // ====================================================
 
-        camaraIniciada = true;
+        // -----------------------------------------------------
+        // CÁMARA FUNCIONANDO
+        // -----------------------------------------------------
+
+        camaraActiva = true;
 
 
         estadoTexto.textContent =
@@ -490,13 +613,19 @@
           "none";
 
 
-      } catch (error) {
+        mensaje.innerHTML = "";
+
+
+
+      }
+
+      catch (error) {
 
 
         console.error(error);
 
 
-        camaraIniciada = false;
+        camaraActiva = false;
 
 
         reader.style.display =
@@ -508,52 +637,99 @@
 
 
         estadoDetalle.textContent =
-          "Compruebe el permiso de cámara.";
+          "Error al iniciar el lector.";
 
 
         mensaje.innerHTML =
+
           "<span class='error'>" +
+
           escapar(
+
             error && error.message
+
               ? error.message
-              : error
+
+              : String(error)
+
           ) +
+
           "</span>";
 
 
         boton.disabled = false;
 
 
+        boton.style.display =
+          "block";
+
+
         boton.textContent =
           "REINTENTAR CÁMARA";
+
       }
+
     }
 
 
-    // ========================================================
-    // BOTÓN
-    // ========================================================
+
+    // =========================================================
+    // BOTÓN ACTIVAR
+    // =========================================================
 
     boton.addEventListener(
+
       "click",
+
       activarCamara
+
     );
 
 
-    // ========================================================
-    // AL VOLVER DESDE APPS SCRIPT
-    // ========================================================
+
+    // =========================================================
+    // CUANDO SE REGRESA A ESTA PÁGINA
+    // =========================================================
 
     window.addEventListener(
+
       "pageshow",
+
       function () {
+
 
         procesando = false;
 
+
+        if (!camaraActiva) {
+
+
+          estadoTexto.textContent =
+            "LISTO PARA ESCANEAR";
+
+
+          estadoDetalle.textContent =
+            "Presione el botón para activar la cámara.";
+
+
+          boton.disabled = false;
+
+
+          boton.style.display =
+            "block";
+
+
+          boton.textContent =
+            "ACTIVAR CÁMARA";
+
+        }
+
       }
+
     );
 
   </script>
 
 </body>
+
 </html>
