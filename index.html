@@ -28,78 +28,64 @@
 
     body {
       text-align: center;
-      padding: 25px 15px;
+      padding: 30px 20px;
     }
 
     .contenedor {
       width: 100%;
-      max-width: 520px;
+      max-width: 650px;
       margin: 0 auto;
     }
 
     h1 {
       color: #20b15a;
-      font-size: 28px;
+      font-size: 30px;
       margin: 20px 0 5px;
     }
 
     .subtitulo {
-      color: #ccc;
-      font-size: 15px;
+      font-size: 18px;
+      margin-bottom: 35px;
+    }
+
+    .estado {
+      background: #222;
+      padding: 22px;
+      border-radius: 12px;
       margin-bottom: 25px;
     }
 
-    #estado {
-      background: #222;
-      padding: 18px;
-      border-radius: 12px;
-      margin: 20px 0;
-      font-size: 17px;
-      line-height: 1.5;
+    .estado strong {
+      display: block;
+      color: #20b15a;
+      font-size: 21px;
+      margin-bottom: 8px;
     }
 
     #reader {
       width: 100%;
-      margin: 20px auto;
       overflow: hidden;
       border-radius: 14px;
       background: #222;
     }
 
-    .verde {
+    #reader video {
+      width: 100% !important;
+      border-radius: 14px;
+    }
+
+    #mensaje {
+      margin-top: 25px;
+      font-size: 17px;
+      line-height: 1.4;
+    }
+
+    .error {
+      color: #ff5252;
+    }
+
+    .ok {
       color: #20b15a;
-      font-weight: bold;
-    }
-
-    .rojo {
-      color: #e53935;
-      font-weight: bold;
-    }
-
-    .boton {
-      display: block;
-      width: 100%;
-      max-width: 420px;
-      margin: 20px auto;
-      padding: 20px 15px;
-      border: 0;
-      border-radius: 12px;
-      background: #20b15a;
-      color: white;
-      font-size: 20px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    #activarCamara {
-      display: none;
-    }
-
-    .ayuda {
-      color: #bbb;
-      font-size: 15px;
-      line-height: 1.5;
-      margin: 20px auto;
     }
   </style>
 </head>
@@ -114,287 +100,226 @@
       CADENA PERPETUA
     </div>
 
-    <div id="estado">
-      Preparando cámara...
+    <div class="estado">
+      <strong id="estadoTexto">
+        INICIANDO CÁMARA...
+      </strong>
+
+      <span>
+        Apunte al QR de la invitación.
+      </span>
     </div>
 
     <div id="reader"></div>
 
-    <button
-      id="activarCamara"
-      class="boton"
-      onclick="activarCamaraManual()"
-    >
-      ACTIVAR CÁMARA
-    </button>
-
-    <div class="ayuda" id="ayuda"></div>
+    <div id="mensaje"></div>
 
   </div>
 
 
-<script>
+  <script>
 
-const URL_APPS_SCRIPT =
-  "https://script.google.com/macros/s/AKfycbwqJQAoFyiz2GP7n05ATXvtPiCWChRzScyqCz3OIB1xmY14F5jKc8U898wcfZrZfQAMPQ/exec";
+    // ========================================================
+    // CONFIGURACIÓN
+    // ========================================================
 
-const CLAVE = "P1-TEST-9264";
+    const URL_APP =
+      "https://script.google.com/macros/s/AKfycbwqJQAoFyiz2GP7n05ATXvtPiCWChRzScyqCz3OlB1xmY14F5jKc8U898wcfZrZfQAMPQ/exec";
 
-let scanner = null;
-let procesando = false;
+    const CLAVE =
+      "P1-TEST-9264";
 
 
-// ============================================================
-// EXTRAER CODIGO DEL QR
-// ============================================================
+    let procesando = false;
 
-function extraerCodigo(texto) {
 
-  texto = String(texto || "").trim();
+    // ========================================================
+    // EXTRAER CÓDIGO DEL QR
+    // ========================================================
 
-  if (!texto) {
-    return "";
-  }
+    function obtenerCodigo(texto) {
 
-  try {
+      texto = String(texto || "").trim();
 
-    const url = new URL(texto);
+      if (!texto) {
+        return "";
+      }
 
-    const codigo =
-      url.searchParams.get("codigo");
 
-    if (codigo) {
-      return codigo.trim();
+      // ------------------------------------------------------
+      // SI EL QR CONTIENE UNA URL
+      // ------------------------------------------------------
+
+      try {
+
+        const url = new URL(texto);
+
+        const codigoURL =
+          url.searchParams.get("codigo");
+
+        if (codigoURL) {
+
+          return codigoURL.trim();
+
+        }
+
+      } catch (e) {
+
+        // No es una URL.
+        // Seguimos y lo tratamos como código directo.
+
+      }
+
+
+      // ------------------------------------------------------
+      // QR CON CÓDIGO DIRECTO
+      // EJEMPLO: TEST-004
+      // ------------------------------------------------------
+
+      return texto;
     }
 
-  } catch (e) {
-  }
 
-  return texto;
-}
+    // ========================================================
+    // QR LEÍDO
+    // ========================================================
 
+    function qrLeido(
+      decodedText,
+      decodedResult
+    ) {
 
-// ============================================================
-// MOSTRAR ESTADO
-// ============================================================
-
-function mostrarEstado(texto, clase) {
-
-  const estado =
-    document.getElementById("estado");
-
-  estado.innerHTML =
-    "<span class='" +
-    clase +
-    "'>" +
-    texto +
-    "</span>";
-}
+      if (procesando) {
+        return;
+      }
 
 
-// ============================================================
-// INICIAR LECTOR
-// ============================================================
+      const codigo =
+        obtenerCodigo(decodedText);
 
-function iniciarScanner() {
 
-  procesando = false;
+      if (!codigo) {
 
-  document.getElementById(
-    "activarCamara"
-  ).style.display = "none";
+        document.getElementById("mensaje").innerHTML =
+          "<span class='error'>QR sin código válido.</span>";
 
-  document.getElementById(
-    "ayuda"
-  ).innerHTML = "";
+        return;
+      }
 
-  mostrarEstado(
-    "INICIANDO CÁMARA...",
-    "verde"
-  );
 
-  try {
+      procesando = true;
 
-    scanner =
-      new Html5QrcodeScanner(
-        "reader",
-        {
-          fps: 10,
 
-          qrbox: {
-            width: 250,
-            height: 250
+      document.getElementById("estadoTexto").textContent =
+        "QR DETECTADO";
+
+
+      document.getElementById("mensaje").innerHTML =
+        "<span class='ok'>Código: " +
+        escapar(codigo) +
+        "</span><br>Verificando invitación...";
+
+
+      // ======================================================
+      // CREAR URL CORRECTA HACIA APPS SCRIPT
+      // ======================================================
+
+      const destino =
+        URL_APP +
+        "?codigo=" +
+        encodeURIComponent(codigo) +
+        "&clave=" +
+        encodeURIComponent(CLAVE);
+
+
+      // ======================================================
+      // IR A CONTROL DE INGRESO
+      // ======================================================
+
+      setTimeout(function () {
+
+        window.location.href = destino;
+
+      }, 300);
+
+    }
+
+
+    // ========================================================
+    // ERROR DEL ESCÁNER
+    // ========================================================
+
+    function errorLectura(errorMessage) {
+
+      // Los errores normales mientras busca un QR
+      // se ignoran para que no molesten en pantalla.
+
+    }
+
+
+    // ========================================================
+    // PROTEGER TEXTO
+    // ========================================================
+
+    function escapar(texto) {
+
+      return String(texto)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+
+    // ========================================================
+    // INICIAR ESCÁNER
+    // ========================================================
+
+    function iniciarScanner() {
+
+      document.getElementById("estadoTexto").textContent =
+        "CÁMARA ACTIVA";
+
+
+      const scanner =
+        new Html5QrcodeScanner(
+          "reader",
+          {
+            fps: 10,
+
+            qrbox: {
+              width: 250,
+              height: 250
+            },
+
+            rememberLastUsedCamera: true,
+
+            supportedScanTypes: [
+              Html5QrcodeScanType.SCAN_TYPE_CAMERA
+            ]
           },
+          false
+        );
 
-          rememberLastUsedCamera: true,
 
-          supportedScanTypes: [
-            Html5QrcodeScanType.SCAN_TYPE_CAMERA
-          ]
-        },
-        false
+      scanner.render(
+        qrLeido,
+        errorLectura
       );
+    }
 
-    scanner.render(
-      qrDetectado,
-      errorLectura
+
+    // ========================================================
+    // ARRANCAR
+    // ========================================================
+
+    window.addEventListener(
+      "load",
+      iniciarScanner
     );
 
-  } catch (error) {
-
-    mostrarErrorCamara();
-
-  }
-}
-
-
-// ============================================================
-// QR DETECTADO
-// ============================================================
-
-function qrDetectado(
-  decodedText,
-  decodedResult
-) {
-
-  if (procesando) {
-    return;
-  }
-
-  procesando = true;
-
-  const codigo =
-    extraerCodigo(decodedText);
-
-  if (!codigo) {
-
-    procesando = false;
-
-    mostrarEstado(
-      "QR NO VÁLIDO",
-      "rojo"
-    );
-
-    return;
-  }
-
-
-  mostrarEstado(
-    "QR DETECTADO: " +
-    escapar(codigo),
-    "verde"
-  );
-
-
-  // Ir a Apps Script para controlar la entrada
-
-  const destino =
-    URL_APPS_SCRIPT +
-    "?codigo=" +
-    encodeURIComponent(codigo) +
-    "&clave=" +
-    encodeURIComponent(CLAVE);
-
-
-  window.location.href =
-    destino;
-}
-
-
-// ============================================================
-// ERRORES DEL LECTOR
-// ============================================================
-
-function errorLectura(errorMessage) {
-
-  const mensaje =
-    String(errorMessage || "");
-
-  if (
-    mensaje.indexOf("NotAllowedError") !== -1 ||
-    mensaje.indexOf("Permission denied") !== -1
-  ) {
-
-    mostrarErrorCamara();
-  }
-}
-
-
-// ============================================================
-// CAMARA BLOQUEADA
-// ============================================================
-
-function mostrarErrorCamara() {
-
-  mostrarEstado(
-    "SE NECESITA ACCESO A LA CÁMARA",
-    "rojo"
-  );
-
-  document.getElementById(
-    "activarCamara"
-  ).style.display = "block";
-
-  document.getElementById(
-    "ayuda"
-  ).innerHTML =
-    "Tocá ACTIVAR CÁMARA y permití el acceso cuando Chrome lo solicite.";
-}
-
-
-// ============================================================
-// ACTIVAR MANUALMENTE
-// ============================================================
-
-function activarCamaraManual() {
-
-  document.getElementById(
-    "activarCamara"
-  ).style.display = "none";
-
-  document.getElementById(
-    "reader"
-  ).innerHTML = "";
-
-  mostrarEstado(
-    "SOLICITANDO CÁMARA...",
-    "verde"
-  );
-
-  iniciarScanner();
-}
-
-
-// ============================================================
-// ESCAPAR TEXTO
-// ============================================================
-
-function escapar(texto) {
-
-  return String(texto || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-
-// ============================================================
-// INICIO
-// ============================================================
-
-window.addEventListener(
-  "load",
-  function() {
-
-    setTimeout(
-      iniciarScanner,
-      500
-    );
-
-  }
-);
-
-</script>
+  </script>
 
 </body>
 </html>
