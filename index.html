@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
 
@@ -18,13 +17,12 @@
       box-sizing: border-box;
     }
 
-    html,
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       min-height: 100%;
       background: #111;
-      color: #fff;
+      color: white;
       font-family: Arial, sans-serif;
     }
 
@@ -42,31 +40,30 @@
     h1 {
       color: #20b15a;
       font-size: 28px;
-      margin: 15px 0 10px;
+      margin: 20px 0 5px;
     }
 
     .subtitulo {
-      font-size: 16px;
-      color: #ddd;
+      color: #ccc;
+      font-size: 15px;
       margin-bottom: 25px;
+    }
+
+    #estado {
+      background: #222;
+      padding: 18px;
+      border-radius: 12px;
+      margin: 20px 0;
+      font-size: 17px;
+      line-height: 1.5;
     }
 
     #reader {
       width: 100%;
-      max-width: 500px;
       margin: 20px auto;
-      background: #222;
-      border-radius: 14px;
       overflow: hidden;
-    }
-
-    #estado {
-      margin: 20px auto;
-      padding: 18px;
-      border-radius: 12px;
+      border-radius: 14px;
       background: #222;
-      font-size: 18px;
-      line-height: 1.5;
     }
 
     .verde {
@@ -80,53 +77,29 @@
     }
 
     .boton {
+      display: block;
       width: 100%;
       max-width: 420px;
+      margin: 20px auto;
+      padding: 20px 15px;
       border: 0;
       border-radius: 12px;
-      padding: 20px;
-      margin: 15px auto;
       background: #20b15a;
       color: white;
-      font-size: 19px;
+      font-size: 20px;
       font-weight: bold;
       cursor: pointer;
     }
 
-    .boton:disabled {
-      opacity: 0.5;
-    }
-
-    #resultado {
+    #activarCamara {
       display: none;
-      margin-top: 20px;
     }
 
-    .tarjeta {
-      padding: 25px 18px;
-      border-radius: 14px;
-      background: #1b1b1b;
-    }
-
-    .codigo {
-      font-size: 27px;
-      font-weight: bold;
-      margin: 20px 0;
-      word-break: break-word;
-    }
-
-    .mensajeGrande {
-      font-size: 25px;
-      font-weight: bold;
-      margin: 20px 0;
-    }
-
-    iframe {
-      width: 100%;
-      height: 430px;
-      border: 0;
-      border-radius: 12px;
-      background: #111;
+    .ayuda {
+      color: #bbb;
+      font-size: 15px;
+      line-height: 1.5;
+      margin: 20px auto;
     }
   </style>
 </head>
@@ -141,120 +114,106 @@
       CADENA PERPETUA
     </div>
 
-    <div id="zonaScanner">
-
-      <div id="estado">
-        Preparando cámara...
-      </div>
-
-      <div id="reader"></div>
-
+    <div id="estado">
+      Preparando cámara...
     </div>
 
-    <div id="resultado">
+    <div id="reader"></div>
 
-      <div class="tarjeta">
+    <button
+      id="activarCamara"
+      class="boton"
+      onclick="activarCamaraManual()"
+    >
+      ACTIVAR CÁMARA
+    </button>
 
-        <div id="textoResultado">
-          Procesando invitación...
-        </div>
-
-        <button
-          class="boton"
-          id="btnVolver"
-          onclick="volverScanner()"
-        >
-          ESCANEAR SIGUIENTE
-        </button>
-
-      </div>
-
-    </div>
+    <div class="ayuda" id="ayuda"></div>
 
   </div>
 
 
 <script>
 
-  // =========================================================
-  // CONFIGURACIÓN
-  // =========================================================
+const URL_APPS_SCRIPT =
+  "https://script.google.com/macros/s/AKfycbwqJQAoFyiz2GP7n05ATXvtPiCWChRzScyqCz3OIB1xmY14F5jKc8U898wcfZrZfQAMPQ/exec";
 
-  const URL_APPS_SCRIPT =
-    "https://script.google.com/macros/s/AKfycbwqJQAoFyiz2GP7n05ATXvtPiCWChRzScyqCz3OIB1xmY14F5jKc8U898wcfZrZfQAMPQ/exec";
+const CLAVE = "P1-TEST-9264";
 
-  const CLAVE =
-    "P1-TEST-9264";
+let scanner = null;
+let procesando = false;
 
 
-  // =========================================================
-  // VARIABLES
-  // =========================================================
+// ============================================================
+// EXTRAER CODIGO DEL QR
+// ============================================================
 
-  let scanner = null;
+function extraerCodigo(texto) {
 
-  let bloqueado = false;
+  texto = String(texto || "").trim();
 
-
-  // =========================================================
-  // EXTRAER CÓDIGO DEL QR
-  // =========================================================
-
-  function extraerCodigo(textoQR) {
-
-    textoQR = String(textoQR || "").trim();
-
-    if (!textoQR) {
-      return "";
-    }
-
-    // Si el QR contiene la URL completa de Apps Script
-    try {
-
-      const url = new URL(textoQR);
-
-      const codigoURL =
-        url.searchParams.get("codigo");
-
-      if (codigoURL) {
-        return codigoURL.trim();
-      }
-
-    } catch (e) {
-      // No era una URL. Continuamos.
-    }
-
-    // Si el QR contiene solamente TEST-004, INV-001, etc.
-    return textoQR;
+  if (!texto) {
+    return "";
   }
 
+  try {
 
-  // =========================================================
-  // INICIAR CÁMARA
-  // =========================================================
+    const url = new URL(texto);
 
-  function iniciarScanner() {
+    const codigo =
+      url.searchParams.get("codigo");
 
-    bloqueado = false;
-
-    document.getElementById("resultado").style.display =
-      "none";
-
-    document.getElementById("zonaScanner").style.display =
-      "block";
-
-    document.getElementById("estado").innerHTML =
-      "<span class='verde'>CÁMARA ACTIVA</span><br>" +
-      "Apunte al QR de la invitación.";
-
-    if (scanner) {
-
-      try {
-        scanner.clear();
-      } catch (e) {
-      }
-
+    if (codigo) {
+      return codigo.trim();
     }
+
+  } catch (e) {
+  }
+
+  return texto;
+}
+
+
+// ============================================================
+// MOSTRAR ESTADO
+// ============================================================
+
+function mostrarEstado(texto, clase) {
+
+  const estado =
+    document.getElementById("estado");
+
+  estado.innerHTML =
+    "<span class='" +
+    clase +
+    "'>" +
+    texto +
+    "</span>";
+}
+
+
+// ============================================================
+// INICIAR LECTOR
+// ============================================================
+
+function iniciarScanner() {
+
+  procesando = false;
+
+  document.getElementById(
+    "activarCamara"
+  ).style.display = "none";
+
+  document.getElementById(
+    "ayuda"
+  ).innerHTML = "";
+
+  mostrarEstado(
+    "INICIANDO CÁMARA...",
+    "verde"
+  );
+
+  try {
 
     scanner =
       new Html5QrcodeScanner(
@@ -277,138 +236,163 @@
       );
 
     scanner.render(
-      qrLeido,
-      errorScanner
+      qrDetectado,
+      errorLectura
     );
+
+  } catch (error) {
+
+    mostrarErrorCamara();
+
+  }
+}
+
+
+// ============================================================
+// QR DETECTADO
+// ============================================================
+
+function qrDetectado(
+  decodedText,
+  decodedResult
+) {
+
+  if (procesando) {
+    return;
+  }
+
+  procesando = true;
+
+  const codigo =
+    extraerCodigo(decodedText);
+
+  if (!codigo) {
+
+    procesando = false;
+
+    mostrarEstado(
+      "QR NO VÁLIDO",
+      "rojo"
+    );
+
+    return;
   }
 
 
-  // =========================================================
-  // QR LEÍDO
-  // =========================================================
-
-  function qrLeido(textoQR) {
-
-    if (bloqueado) {
-      return;
-    }
-
-    bloqueado = true;
-
-    const codigo =
-      extraerCodigo(textoQR);
-
-    if (!codigo) {
-
-      bloqueado = false;
-
-      document.getElementById("estado").innerHTML =
-        "<span class='rojo'>QR NO VÁLIDO</span>";
-
-      return;
-    }
-
-    document.getElementById("estado").innerHTML =
-      "<span class='verde'>QR DETECTADO</span><br>" +
-      escapar(codigo);
-
-    // Detenemos la cámara
-    if (scanner) {
-
-      scanner
-        .clear()
-        .catch(function() {});
-
-    }
-
-    consultarInvitacion(codigo);
-  }
-
-
-  // =========================================================
-  // CONSULTAR APPS SCRIPT
-  // =========================================================
-
-  function consultarInvitacion(codigo) {
-
-    document.getElementById("zonaScanner").style.display =
-      "none";
-
-    document.getElementById("resultado").style.display =
-      "block";
-
-    document.getElementById("textoResultado").innerHTML =
-      "<div class='mensajeGrande verde'>" +
-      "VERIFICANDO..." +
-      "</div>" +
-      "<div class='codigo'>" +
-      escapar(codigo) +
-      "</div>";
-
-    const destino =
-      URL_APPS_SCRIPT +
-      "?codigo=" +
-      encodeURIComponent(codigo) +
-      "&clave=" +
-      encodeURIComponent(CLAVE);
-
-    // Abrimos Apps Script en la misma pantalla.
-    // Allí aparecerá INVITACIÓN VÁLIDA o YA UTILIZADA.
-    window.location.href = destino;
-  }
-
-
-  // =========================================================
-  // VOLVER AL ESCÁNER
-  // =========================================================
-
-  function volverScanner() {
-
-    window.location.href =
-      window.location.origin +
-      window.location.pathname;
-  }
-
-
-  // =========================================================
-  // ERROR NORMAL DEL LECTOR
-  // =========================================================
-
-  function errorScanner(error) {
-
-    // No hacemos nada.
-    // html5-qrcode genera errores mientras busca un QR.
-    // Eso es normal.
-  }
-
-
-  // =========================================================
-  // SEGURIDAD PARA MOSTRAR TEXTO
-  // =========================================================
-
-  function escapar(texto) {
-
-    return String(texto || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-
-  // =========================================================
-  // ARRANQUE AUTOMÁTICO
-  // =========================================================
-
-  window.addEventListener(
-    "load",
-    function() {
-
-      iniciarScanner();
-
-    }
+  mostrarEstado(
+    "QR DETECTADO: " +
+    escapar(codigo),
+    "verde"
   );
+
+
+  // Ir a Apps Script para controlar la entrada
+
+  const destino =
+    URL_APPS_SCRIPT +
+    "?codigo=" +
+    encodeURIComponent(codigo) +
+    "&clave=" +
+    encodeURIComponent(CLAVE);
+
+
+  window.location.href =
+    destino;
+}
+
+
+// ============================================================
+// ERRORES DEL LECTOR
+// ============================================================
+
+function errorLectura(errorMessage) {
+
+  const mensaje =
+    String(errorMessage || "");
+
+  if (
+    mensaje.indexOf("NotAllowedError") !== -1 ||
+    mensaje.indexOf("Permission denied") !== -1
+  ) {
+
+    mostrarErrorCamara();
+  }
+}
+
+
+// ============================================================
+// CAMARA BLOQUEADA
+// ============================================================
+
+function mostrarErrorCamara() {
+
+  mostrarEstado(
+    "SE NECESITA ACCESO A LA CÁMARA",
+    "rojo"
+  );
+
+  document.getElementById(
+    "activarCamara"
+  ).style.display = "block";
+
+  document.getElementById(
+    "ayuda"
+  ).innerHTML =
+    "Tocá ACTIVAR CÁMARA y permití el acceso cuando Chrome lo solicite.";
+}
+
+
+// ============================================================
+// ACTIVAR MANUALMENTE
+// ============================================================
+
+function activarCamaraManual() {
+
+  document.getElementById(
+    "activarCamara"
+  ).style.display = "none";
+
+  document.getElementById(
+    "reader"
+  ).innerHTML = "";
+
+  mostrarEstado(
+    "SOLICITANDO CÁMARA...",
+    "verde"
+  );
+
+  iniciarScanner();
+}
+
+
+// ============================================================
+// ESCAPAR TEXTO
+// ============================================================
+
+function escapar(texto) {
+
+  return String(texto || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+
+// ============================================================
+// INICIO
+// ============================================================
+
+window.addEventListener(
+  "load",
+  function() {
+
+    setTimeout(
+      iniciarScanner,
+      500
+    );
+
+  }
+);
 
 </script>
 
