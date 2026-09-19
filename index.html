@@ -92,234 +92,125 @@
 
 <body>
 
-  <div class="contenedor">
+<div class="contenedor">
 
-    <h1>CONTROL DE INGRESO</h1>
+  <h1>CONTROL DE INGRESO</h1>
 
-    <div class="subtitulo">
-      CADENA PERPETUA
-    </div>
+  <div class="subtitulo">
+    CADENA PERPETUA
+  </div>
 
-    <div class="estado">
-      <strong id="estadoTexto">
-        INICIANDO CÁMARA...
-      </strong>
+  <div class="estado">
 
-      <span>
-        Apunte al QR de la invitación.
-      </span>
-    </div>
+    <strong id="estadoTexto">
+      INICIANDO CÁMARA...
+    </strong>
 
-    <div id="reader"></div>
-
-    <div id="mensaje"></div>
+    <span>
+      Apunte al QR de la invitación.
+    </span>
 
   </div>
 
+  <div id="reader"></div>
 
-  <script>
+  <div id="mensaje"></div>
 
-    // ========================================================
-    // CONFIGURACIÓN
-    // ========================================================
-
-    const URL_APP =
-      "https://script.google.com/macros/s/AKfycbwqJQAoFyiz2GP7n05ATXvtPiCWChRzScyqCz3OlB1xmY14F5jKc8U898wcfZrZfQAMPQ/exec";
-
-    const CLAVE =
-      "P1-TEST-9264";
+</div>
 
 
-    let procesando = false;
+<script>
+
+const URL_APP =
+  "https://script.google.com/macros/s/AKfycbwqJQAoFyiz2GP7n05ATXvtPiCWChRzScyqCz3OlB1xmY14F5jKc8U898wcfZrZfQAMPQ/exec";
+
+const CLAVE = "P1-TEST-9264";
+
+let procesando = false;
 
 
-    // ========================================================
-    // EXTRAER CÓDIGO DEL QR
-    // ========================================================
+function obtenerCodigo(texto) {
 
-    function obtenerCodigo(texto) {
+  texto = String(texto || "").trim();
 
-      texto = String(texto || "").trim();
+  if (!texto) {
+    return "";
+  }
 
-      if (!texto) {
-        return "";
-      }
+  try {
 
+    const url = new URL(texto);
 
-      // ------------------------------------------------------
-      // SI EL QR CONTIENE UNA URL
-      // ------------------------------------------------------
+    const codigo =
+      url.searchParams.get("codigo");
 
-      try {
-
-        const url = new URL(texto);
-
-        const codigoURL =
-          url.searchParams.get("codigo");
-
-        if (codigoURL) {
-
-          return codigoURL.trim();
-
-        }
-
-      } catch (e) {
-
-        // No es una URL.
-        // Seguimos y lo tratamos como código directo.
-
-      }
-
-
-      // ------------------------------------------------------
-      // QR CON CÓDIGO DIRECTO
-      // EJEMPLO: TEST-004
-      // ------------------------------------------------------
-
-      return texto;
+    if (codigo) {
+      return codigo.trim();
     }
 
+  } catch (e) {
+  }
 
-    // ========================================================
-    // QR LEÍDO
-    // ========================================================
-
-    function qrLeido(
-      decodedText,
-      decodedResult
-    ) {
-
-      if (procesando) {
-        return;
-      }
+  return texto;
+}
 
 
-      const codigo =
-        obtenerCodigo(decodedText);
+function qrLeido(decodedText) {
+
+  if (procesando) {
+    return;
+  }
+
+  const codigo =
+    obtenerCodigo(decodedText);
+
+  if (!codigo) {
+
+    document.getElementById("mensaje").innerHTML =
+      "<span class='error'>QR sin código válido.</span>";
+
+    return;
+  }
 
 
-      if (!codigo) {
-
-        document.getElementById("mensaje").innerHTML =
-          "<span class='error'>QR sin código válido.</span>";
-
-        return;
-      }
+  procesando = true;
 
 
-      procesando = true;
+  document.getElementById("estadoTexto").textContent =
+    "QR DETECTADO";
 
 
-      document.getElementById("estadoTexto").textContent =
-        "QR DETECTADO";
+  document.getElementById("mensaje").innerHTML =
+    "<span class='ok'>Código: " +
+    escapar(codigo) +
+    "</span><br>Verificando invitación...";
 
 
-      document.getElementById("mensaje").innerHTML =
-        "<span class='ok'>Código: " +
-        escapar(codigo) +
-        "</span><br>Verificando invitación...";
+  const destino =
+    URL_APP +
+    "?codigo=" +
+    encodeURIComponent(codigo) +
+    "&clave=" +
+    encodeURIComponent(CLAVE);
 
 
-      // ======================================================
-      // CREAR URL CORRECTA HACIA APPS SCRIPT
-      // ======================================================
+  // IMPORTANTE:
+  // abre Apps Script como página principal,
+  // no dentro de ningún iframe.
 
-      const destino =
-        URL_APP +
-        "?codigo=" +
-        encodeURIComponent(codigo) +
-        "&clave=" +
-        encodeURIComponent(CLAVE);
+  window.top.location.href = destino;
+}
 
 
-      // ======================================================
-      // IR A CONTROL DE INGRESO
-      // ======================================================
-
-      setTimeout(function () {
-
-        window.location.href = destino;
-
-      }, 300);
-
-    }
+function errorLectura(errorMessage) {
+}
 
 
-    // ========================================================
-    // ERROR DEL ESCÁNER
-    // ========================================================
+function escapar(texto) {
 
-    function errorLectura(errorMessage) {
-
-      // Los errores normales mientras busca un QR
-      // se ignoran para que no molesten en pantalla.
-
-    }
-
-
-    // ========================================================
-    // PROTEGER TEXTO
-    // ========================================================
-
-    function escapar(texto) {
-
-      return String(texto)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-
-    // ========================================================
-    // INICIAR ESCÁNER
-    // ========================================================
-
-    function iniciarScanner() {
-
-      document.getElementById("estadoTexto").textContent =
-        "CÁMARA ACTIVA";
-
-
-      const scanner =
-        new Html5QrcodeScanner(
-          "reader",
-          {
-            fps: 10,
-
-            qrbox: {
-              width: 250,
-              height: 250
-            },
-
-            rememberLastUsedCamera: true,
-
-            supportedScanTypes: [
-              Html5QrcodeScanType.SCAN_TYPE_CAMERA
-            ]
-          },
-          false
-        );
-
-
-      scanner.render(
-        qrLeido,
-        errorLectura
-      );
-    }
-
-
-    // ========================================================
-    // ARRANCAR
-    // ========================================================
-
-    window.addEventListener(
-      "load",
-      iniciarScanner
-    );
-
-  </script>
-
-</body>
-</html>
+  return String(texto)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g,
