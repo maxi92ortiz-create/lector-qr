@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Control de Ingreso</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100%;
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      padding: 25px 15px;
+      text-align: center;
+    }
+
+    .contenedor {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #20b15a;
+      font-size: 28px;
+      margin: 15px 0 8px;
+    }
+
+    h2 {
+      font-size: 19px;
+      margin: 0 0 25px;
+      font-weight: normal;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      background: #181818;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    #estado {
+      margin-top: 25px;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    .info {
+      margin-top: 25px;
+      padding: 18px;
+      background: #1d1d1d;
+      border-radius: 12px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .error {
+      color: #ff5252;
+      font-weight: bold;
+    }
+
+    .ok {
+      color: #20b15a;
+      font-weight: bold;
+    }
+
+    button {
+      background: #20b15a;
+      color: white;
+      border: 0;
+      border-radius: 12px;
+      padding: 18px 24px;
+      font-size: 18px;
+      font-weight: bold;
+      width: 100%;
+      max-width: 400px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="contenedor">
+
+    <h1>CONTROL DE INGRESO</h1>
+
+    <h2>Escanear invitación</h2>
+
+    <div id="reader"></div>
+
+    <div id="estado">
+      Apuntá la cámara al QR de la invitación.
+    </div>
+
+    <div class="info">
+      El ingreso solamente se registra después de confirmar
+      la invitación en la siguiente pantalla.
+    </div>
+
+    <button
+      id="reiniciar"
+      style="display:none;"
+      onclick="reiniciarScanner()"
+    >
+      ESCANEAR OTRA INVITACIÓN
+    </button>
+
+  </div>
+
+
+  <script>
+
+    const CLAVE_CONTROL = "P1-TEST-9264";
+
+    let procesando = false;
+    let scanner = null;
+
+
+    function mostrarEstado(texto, clase) {
+
+      const estado =
+        document.getElementById("estado");
+
+      estado.className = clase || "";
+      estado.innerHTML = texto;
+    }
+
+
+    function procesarQR(texto) {
+
+      if (procesando) {
+        return;
+      }
+
+      procesando = true;
+
+      mostrarEstado(
+        "QR detectado. Verificando invitación...",
+        "ok"
+      );
+
+      try {
+
+        let url;
+
+        try {
+
+          url = new URL(texto);
+
+        } catch (error) {
+
+          mostrarEstado(
+            "QR NO VÁLIDO<br><br>" +
+            "Este QR no contiene una dirección válida del sistema.",
+            "error"
+          );
+
+          procesando = false;
+
+          document.getElementById("reiniciar")
+            .style.display = "inline-block";
+
+          return;
+        }
+
+
+        const codigo =
+          url.searchParams.get("codigo");
+
+
+        if (!codigo) {
+
+          mostrarEstado(
+            "QR NO VÁLIDO<br><br>" +
+            "No se encontró el código de la invitación.",
+            "error"
+          );
+
+          procesando = false;
+
+          document.getElementById("reiniciar")
+            .style.display = "inline-block";
+
+          return;
+        }
+
+
+        /*
+          Conservamos la dirección REAL que viene
+          dentro del QR.
+
+          Solamente agregamos la clave correspondiente
+          al teléfono de control.
+        */
+
+        url.searchParams.set(
+          "clave",
+          CLAVE_CONTROL
+        );
+
+        /*
+          Quitamos cualquier confirmación anterior.
+          Primero debe mostrarse INVITACIÓN VÁLIDA
+          y recién después confirmar el ingreso.
+        */
+
+        url.searchParams.delete("accion");
+
+
+        mostrarEstado(
+          "INVITACIÓN DETECTADA<br><br>" +
+          codigo +
+          "<br><br>Abriendo control de ingreso...",
+          "ok"
+        );
+
+
+        /*
+          Abrimos la invitación directamente.
+        */
+
+        window.location.href =
+          url.toString();
+
+
+      } catch (error) {
+
+        mostrarEstado(
+          "ERROR AL LEER EL QR<br><br>" +
+          "Intentá escanearlo nuevamente.",
+          "error"
+        );
+
+        procesando = false;
+
+        document.getElementById("reiniciar")
+          .style.display = "inline-block";
+      }
+    }
+
+
+    function errorScanner(error) {
+      /*
+        Los errores mientras la cámara está buscando
+        un QR son normales y no se muestran.
+      */
+    }
+
+
+    function iniciarScanner() {
+
+      procesando = false;
+
+      document.getElementById("reiniciar")
+        .style.display = "none";
+
+
+      mostrarEstado(
+        "Apuntá la cámara al QR de la invitación.",
+        ""
+      );
+
+
+      scanner =
+        new Html5QrcodeScanner(
+
+          "reader",
+
+          {
+            fps: 10,
+
+            qrbox: {
+              width: 250,
+              height: 250
+            },
+
+            rememberLastUsedCamera: true,
+
+            supportedScanTypes: [
+              Html5QrcodeScanType.SCAN_TYPE_CAMERA
+            ]
+          },
+
+          false
+        );
+
+
+      scanner.render(
+        procesarQR,
+        errorScanner
+      );
+    }
+
+
+    function reiniciarScanner() {
+
+      location.reload();
+    }
+
+
+    /*
+      INICIAR AUTOMÁTICAMENTE
+    */
+
+    window.addEventListener(
+      "load",
+      iniciarScanner
+    );
+
+  </script>
+
+</body>
+</html>
