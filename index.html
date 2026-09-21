@@ -13,6 +13,7 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
+
     * {
       box-sizing: border-box;
     }
@@ -28,7 +29,7 @@
     }
 
     body {
-      padding: 28px 20px;
+      padding: 24px 16px;
       text-align: center;
     }
 
@@ -39,16 +40,76 @@
     }
 
     h1 {
-      margin: 20px 0 6px;
+      margin: 18px 0 6px;
       color: #20b15a;
       font-size: 30px;
       font-weight: 700;
     }
 
     .subtitulo {
-      margin-bottom: 35px;
+      margin-bottom: 24px;
       font-size: 18px;
     }
+
+
+    /* ========================================================
+       CONTADORES
+       ======================================================== */
+
+    .estadisticas {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 0 0 22px;
+    }
+
+    .contador {
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 14px 5px;
+      min-width: 0;
+    }
+
+    .contadorNumero {
+      display: block;
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .contadorTitulo {
+      display: block;
+      font-size: 10px;
+      font-weight: bold;
+      color: #aaa;
+      letter-spacing: .4px;
+    }
+
+    #numeroDescargadas {
+      color: #fff;
+    }
+
+    #numeroEscaneadas {
+      color: #20b15a;
+    }
+
+    #numeroQuedan {
+      color: #ffca28;
+    }
+
+    .actualizando {
+      color: #777;
+      font-size: 11px;
+      margin: -12px 0 20px;
+      min-height: 14px;
+    }
+
+
+    /* ========================================================
+       ESTADO DEL LECTOR
+       ======================================================== */
 
     .estado {
       margin-bottom: 25px;
@@ -68,6 +129,11 @@
       font-size: 17px;
       line-height: 1.4;
     }
+
+
+    /* ========================================================
+       CÁMARA
+       ======================================================== */
 
     #reader {
       display: none;
@@ -125,8 +191,30 @@
     .info {
       color: #ddd;
     }
+
+
+    /* ========================================================
+       CELULARES MUY CHICOS
+       ======================================================== */
+
+    @media (max-width: 370px) {
+
+      .contadorNumero {
+        font-size: 23px;
+      }
+
+      .contadorTitulo {
+        font-size: 8px;
+      }
+
+      .contador {
+        padding: 12px 3px;
+      }
+    }
+
   </style>
 </head>
+
 
 <body>
 
@@ -137,6 +225,74 @@
     <div class="subtitulo">
       CADENA PERPETUA
     </div>
+
+
+    <!-- ======================================================
+         ESTADÍSTICAS
+         ====================================================== -->
+
+    <div class="estadisticas">
+
+      <div class="contador">
+
+        <span
+          id="numeroDescargadas"
+          class="contadorNumero"
+        >
+          —
+        </span>
+
+        <span class="contadorTitulo">
+          DESCARGADAS
+        </span>
+
+      </div>
+
+
+      <div class="contador">
+
+        <span
+          id="numeroEscaneadas"
+          class="contadorNumero"
+        >
+          —
+        </span>
+
+        <span class="contadorTitulo">
+          ESCANEADAS
+        </span>
+
+      </div>
+
+
+      <div class="contador">
+
+        <span
+          id="numeroQuedan"
+          class="contadorNumero"
+        >
+          —
+        </span>
+
+        <span class="contadorTitulo">
+          QUEDAN
+        </span>
+
+      </div>
+
+    </div>
+
+    <div
+      id="estadoEstadisticas"
+      class="actualizando"
+    >
+      Actualizando información...
+    </div>
+
+
+    <!-- ======================================================
+         ESTADO
+         ====================================================== -->
 
     <div class="estado">
 
@@ -149,6 +305,11 @@
       </span>
 
     </div>
+
+
+    <!-- ======================================================
+         CÁMARA
+         ====================================================== -->
 
     <button
       id="activarCamara"
@@ -204,23 +365,129 @@
       document.getElementById("estadoDetalle");
 
 
+    const numeroDescargadas =
+      document.getElementById("numeroDescargadas");
+
+    const numeroEscaneadas =
+      document.getElementById("numeroEscaneadas");
+
+    const numeroQuedan =
+      document.getElementById("numeroQuedan");
+
+    const estadoEstadisticas =
+      document.getElementById("estadoEstadisticas");
+
+
+    // =========================================================
+    // ESTADÍSTICAS
+    // =========================================================
+
+    async function actualizarEstadisticas() {
+
+      try {
+
+        estadoEstadisticas.textContent =
+          "Actualizando información...";
+
+
+        const url =
+
+          URL_APP +
+
+          "?modo=estadisticas" +
+
+          "&_=" +
+
+          Date.now();
+
+
+        const respuesta =
+          await fetch(
+            url,
+            {
+              cache: "no-store"
+            }
+          );
+
+
+        if (!respuesta.ok) {
+
+          throw new Error(
+            "No se pudieron consultar los contadores."
+          );
+        }
+
+
+        const datos =
+          await respuesta.json();
+
+
+        if (!datos.ok) {
+
+          throw new Error(
+            datos.error ||
+            "No se pudieron consultar los contadores."
+          );
+        }
+
+
+        numeroDescargadas.textContent =
+          Number(
+            datos.descargadas || 0
+          ).toLocaleString("es-AR");
+
+
+        numeroEscaneadas.textContent =
+          Number(
+            datos.escaneadas || 0
+          ).toLocaleString("es-AR");
+
+
+        numeroQuedan.textContent =
+          Number(
+            datos.quedan || 0
+          ).toLocaleString("es-AR");
+
+
+        estadoEstadisticas.textContent =
+          "Datos actualizados";
+
+
+      } catch (error) {
+
+        console.error(
+          "Error estadísticas:",
+          error
+        );
+
+
+        estadoEstadisticas.textContent =
+          "No se pudieron actualizar los contadores.";
+      }
+    }
+
+
     // =========================================================
     // ESCAPAR TEXTO
     // =========================================================
 
     function escapar(texto) {
 
-      return String(texto == null ? "" : texto)
+      return String(
+        texto == null
+          ? ""
+          : texto
+      )
 
-        .replace(/&/g, "&amp;")
+      .replace(/&/g, "&amp;")
 
-        .replace(/</g, "&lt;")
+      .replace(/</g, "&lt;")
 
-        .replace(/>/g, "&gt;")
+      .replace(/>/g, "&gt;")
 
-        .replace(/"/g, "&quot;")
+      .replace(/"/g, "&quot;")
 
-        .replace(/'/g, "&#039;");
+      .replace(/'/g, "&#039;");
     }
 
 
@@ -231,10 +498,13 @@
     function obtenerCodigo(texto) {
 
       texto =
-        String(texto || "").trim();
+        String(
+          texto || ""
+        ).trim();
 
 
       if (!texto) {
+
         return "";
       }
 
@@ -250,28 +520,25 @@
 
 
         const codigo =
-          url.searchParams.get("codigo");
+          url.searchParams.get(
+            "codigo"
+          );
 
 
         if (codigo) {
 
           return codigo.trim();
-
         }
 
-      }
-
-      catch (error) {
+      } catch (error) {
 
         // No es URL.
         // Se procesa como código directo.
-
       }
 
 
       // -------------------------------------------------------
       // QR DIRECTO
-      // Ejemplo: TEST-004
       // -------------------------------------------------------
 
       return texto;
@@ -284,28 +551,34 @@
 
     function elegirCamara(camaras) {
 
-      if (!camaras || camaras.length === 0) {
+      if (
+        !camaras ||
+        camaras.length === 0
+      ) {
 
         return null;
-
       }
 
 
-      // -------------------------------------------------------
-      // PRIORIDAD:
-      // buscar una cámara cuyo nombre indique que es trasera
-      // -------------------------------------------------------
-
       const palabrasTrasera = [
+
         "back",
+
         "rear",
+
         "environment",
+
         "trasera",
+
         "posterior"
       ];
 
 
-      for (let i = 0; i < camaras.length; i++) {
+      for (
+        let i = 0;
+        i < camaras.length;
+        i++
+      ) {
 
         const etiqueta =
           String(
@@ -326,31 +599,20 @@
           ) {
 
             return camaras[i];
-
           }
-
         }
-
       }
 
 
-      // -------------------------------------------------------
-      // EN MUCHOS CELULARES:
-      // la última cámara suele ser la trasera principal.
-      // -------------------------------------------------------
-
-      if (camaras.length > 1) {
+      if (
+        camaras.length > 1
+      ) {
 
         return camaras[
           camaras.length - 1
         ];
-
       }
 
-
-      // -------------------------------------------------------
-      // SI SOLO HAY UNA, USAR ESA
-      // -------------------------------------------------------
 
       return camaras[0];
     }
@@ -368,12 +630,13 @@
       if (procesando) {
 
         return;
-
       }
 
 
       const codigo =
-        obtenerCodigo(decodedText);
+        obtenerCodigo(
+          decodedText
+        );
 
 
       if (!codigo) {
@@ -381,11 +644,12 @@
         mensaje.innerHTML =
 
           "<span class='error'>" +
+
           "QR SIN CÓDIGO VÁLIDO" +
+
           "</span>";
 
         return;
-
       }
 
 
@@ -423,17 +687,13 @@
         ) {
 
           await scanner.stop();
-
         }
 
-      }
-
-      catch (error) {
+      } catch (error) {
 
         console.log(
           "Cámara detenida o no requería detenerse."
         );
-
       }
 
 
@@ -450,11 +710,15 @@
 
         "?codigo=" +
 
-        encodeURIComponent(codigo) +
+        encodeURIComponent(
+          codigo
+        ) +
 
         "&clave=" +
 
-        encodeURIComponent(CLAVE);
+        encodeURIComponent(
+          CLAVE
+        );
 
 
       // -------------------------------------------------------
@@ -468,16 +732,15 @@
 
 
     // =========================================================
-    // ERROR DE LECTURA NORMAL
+    // ERROR NORMAL DE LECTURA
     // =========================================================
 
-    function errorLectura(errorMessage) {
+    function errorLectura(
+      errorMessage
+    ) {
 
-      // No mostrar estos errores.
-      //
-      // Son normales mientras la cámara
-      // está buscando un QR.
-
+      // Los errores mientras busca QR
+      // son normales y no se muestran.
     }
 
 
@@ -490,7 +753,6 @@
       if (camaraActiva) {
 
         return;
-
       }
 
 
@@ -514,12 +776,15 @@
       mensaje.innerHTML = "";
 
 
-      // -------------------------------------------------------
-      // COMPROBAR LIBRERÍA
-      // -------------------------------------------------------
+      // Actualizamos estadísticas también
+      // al comenzar una sesión de escaneo.
+
+      actualizarEstadisticas();
+
 
       if (
-        typeof Html5Qrcode === "undefined"
+        typeof Html5Qrcode ===
+        "undefined"
       ) {
 
         mostrarError(
@@ -532,12 +797,9 @@
 
       try {
 
-        // =====================================================
-        // PEDIR LISTA REAL DE CÁMARAS DEL TELÉFONO
-        // =====================================================
-
         const camaras =
-          await Html5Qrcode.getCameras();
+          await Html5Qrcode
+            .getCameras();
 
 
         if (
@@ -548,16 +810,13 @@
           throw new Error(
             "No se encontraron cámaras disponibles."
           );
-
         }
 
 
-        // =====================================================
-        // ELEGIR CÁMARA
-        // =====================================================
-
         const camara =
-          elegirCamara(camaras);
+          elegirCamara(
+            camaras
+          );
 
 
         if (!camara) {
@@ -565,7 +824,6 @@
           throw new Error(
             "No se pudo seleccionar una cámara."
           );
-
         }
 
 
@@ -574,14 +832,14 @@
 
 
         estadoDetalle.textContent =
+
           camara.label
-            ? "Cámara seleccionada: " + camara.label
+
+            ? "Cámara seleccionada: " +
+              camara.label
+
             : "Preparando cámara trasera.";
 
-
-        // =====================================================
-        // CREAR LECTOR
-        // =====================================================
 
         reader.style.display =
           "block";
@@ -592,10 +850,6 @@
             "reader"
           );
 
-
-        // =====================================================
-        // CONFIGURACIÓN DEL ESCÁNER
-        // =====================================================
 
         const configuracion = {
 
@@ -619,17 +873,19 @@
               );
 
 
-            if (tamano > 300) {
+            if (
+              tamano > 300
+            ) {
 
               tamano = 300;
-
             }
 
 
-            if (tamano < 180) {
+            if (
+              tamano < 180
+            ) {
 
               tamano = 180;
-
             }
 
 
@@ -638,21 +894,10 @@
               width: tamano,
 
               height: tamano
-
             };
-
           }
-
         };
 
-
-        // =====================================================
-        // INICIAR USANDO EL ID REAL DE LA CÁMARA
-        //
-        // NO USA facingMode
-        // NO USA ideal
-        // NO USA environment
-        // =====================================================
 
         await scanner.start(
 
@@ -663,13 +908,8 @@
           qrLeido,
 
           errorLectura
-
         );
 
-
-        // =====================================================
-        // CÁMARA ACTIVA
-        // =====================================================
 
         camaraActiva = true;
 
@@ -688,20 +928,23 @@
 
         mensaje.innerHTML = "";
 
-      }
 
-      catch (error) {
+      } catch (error) {
 
-        console.error(error);
+        console.error(
+          error
+        );
 
 
         mostrarError(
+
           error &&
           error.message
+
             ? error.message
+
             : String(error)
         );
-
       }
     }
 
@@ -710,7 +953,9 @@
     // MOSTRAR ERROR
     // =========================================================
 
-    function mostrarError(error) {
+    function mostrarError(
+      error
+    ) {
 
       camaraActiva = false;
 
@@ -759,17 +1004,58 @@
 
 
     // =========================================================
+    // AL ABRIR EL LECTOR
+    // =========================================================
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      function() {
+
+        actualizarEstadisticas();
+      }
+    );
+
+
+    // =========================================================
+    // ACTUALIZACIÓN PERIÓDICA
+    // =========================================================
+    //
+    // Si hay varios lectores trabajando al mismo tiempo,
+    // los contadores se refrescan aunque este teléfono
+    // no haya realizado el último ingreso.
+    // =========================================================
+
+    setInterval(
+      function() {
+
+        actualizarEstadisticas();
+
+      },
+      10000
+    );
+
+
+    // =========================================================
     // CUANDO SE REGRESA AL LECTOR
     // =========================================================
 
     window.addEventListener(
       "pageshow",
-      function () {
+      function() {
 
         procesando = false;
 
 
-        if (!camaraActiva) {
+        // Fundamental:
+        // después de confirmar un ingreso,
+        // volvemos a consultar las estadísticas.
+
+        actualizarEstadisticas();
+
+
+        if (
+          !camaraActiva
+        ) {
 
           estadoTexto.textContent =
             "LISTO PARA ESCANEAR";
@@ -788,9 +1074,7 @@
 
           boton.textContent =
             "ACTIVAR CÁMARA";
-
         }
-
       }
     );
 
