@@ -11,7 +11,6 @@
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
 
-
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
@@ -222,12 +221,80 @@
     }
 
   </style>
+
+  <style id="cadena-visual">
+    html,body{
+      background-color:#080808 !important;
+      background-image:url("./fondo.jpg") !important;
+      background-position:center top !important;
+      background-size:100% auto !important;
+      background-repeat:no-repeat !important;
+      background-attachment:scroll !important;
+    }
+    body{position:relative}
+    body:before{
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      background:linear-gradient(rgba(0,0,0,.18),rgba(0,0,0,.42) 52%,rgba(0,0,0,.72));
+    }
+    .contenedor{
+      background:rgba(0,0,0,.14);
+      border-radius:18px;
+      padding:8px 8px 20px;
+    }
+    .logo-cadena{
+      display:block;
+      width:min(390px,90vw);
+      max-height:155px;
+      object-fit:contain;
+      margin:0 auto 0;
+      mix-blend-mode:screen;
+    }
+    h1{
+      margin-top:2px !important;
+      color:#f04fa5 !important;
+      text-shadow:0 2px 8px #000;
+    }
+    .subtitulo{
+      color:#fff;
+      font-weight:bold;
+      text-shadow:0 2px 7px #000;
+    }
+    .contador,.estado{
+      background:rgba(17,17,20,.91) !important;
+      border:1px solid rgba(255,255,255,.18) !important;
+      box-shadow:0 10px 28px rgba(0,0,0,.35);
+      backdrop-filter:blur(6px);
+    }
+    #numeroEscaneadas{color:#f04fa5 !important}
+    #numeroQuedan{color:#ffca28 !important}
+    .estado strong{color:#f04fa5 !important}
+    #activarCamara{
+      background:#f04fa5 !important;
+      box-shadow:0 10px 28px rgba(0,0,0,.42);
+    }
+    #reader{
+      background:rgba(15,15,18,.95) !important;
+      border:2px solid #f04fa5;
+      box-shadow:0 12px 35px rgba(0,0,0,.48);
+    }
+    .actualizando,#mensaje{ text-shadow:0 2px 5px #000 }
+    @media(max-width:600px){
+      html,body{background-size:100% auto !important;background-position:center top !important}
+      .logo-cadena{max-height:135px}
+    }
+  </style>
+
 </head>
 
 
 <body>
 
   <div class="contenedor">
+
+    <img class="logo-cadena" src="./logo.jpg" alt="Cadena Perpetua">
 
     <h1>CONTROL DE INGRESO</h1>
 
@@ -1088,7 +1155,7 @@
     );
 
   
-    // PWA: permite instalar CONTROL DE INGRESO como aplicación.
+    // PWA - mantiene el lector instalable como aplicación.
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function() {
         navigator.serviceWorker.register("./sw.js").catch(function(error) {
